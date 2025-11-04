@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Live Predictions — 200 Slots</title>
+<style>
+  :root{
+    --bg:#f4f6fb;--card:#fff;--muted:#6b7280;--accent:#2563eb;
+    --win:#10b981;--lose:#ef4444;--plan-blue:#2563eb;--plan-gray:#e6eef6;
+  }
+  *{box-sizing:border-box;font-family:Inter,system-ui,Segoe UI,Roboto;margin:0;padding:0}
+  body{background:var(--bg);color:#0f1724;padding:12px;}
+  .header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+  h1{font-size:18px;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:13px}
+  .tabs{display:flex;gap:8px;background:#fff;padding:6px;border-radius:12px;box-shadow:0 1px 2px rgba(16,24,40,0.06)}
+  .tab{padding:8px 12px;border-radius:10px;font-weight:700;color:var(--muted);cursor:pointer}
+  .tab.active{background:var(--plan-blue);color:#fff}
+  .meta{background:#fff;padding:8px 10px;border-radius:10px;display:flex;gap:12px;align-items:center}
+  .mitem{font-size:13px;color:var(--muted)}
+  .container{margin-top:12px}
+  .card{background:var(--card);border-radius:12px;padding:12px;display:flex;gap:12px;align-items:flex-start;margin-bottom:10px;box-shadow:0 1px 2px rgba(2,6,23,0.03);transition:transform .15s}
+  .card.pinned{border:2px solid var(--accent);background:#e0ebff;transform:scale(1.02)}
+  .avatar{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800}
+  .badge{padding:6px 10px;border-radius:999px;background:var(--plan-blue);color:#fff;font-weight:800;font-size:13px}
+  .trend{margin-top:8px;font-size:14px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .dot{width:18px;height:18px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+  .dot.win{background:var(--win);color:#fff}
+  .dot.lose{background:var(--plan-gray);color:#0f1724}
+  @media(min-width:900px){body{padding:20px}.card{max-width:900px}.container{max-width:1100px;margin:0 auto}}
+</style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>Live Predictions</h1>
+      <div class="sub">Next issue auto refresh + instant update — 200 running slots</div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" id="tabSize">B/S</div>
+      <div class="tab" id="tabColor">Color</div>
+    </div>
+  </div>
+
+  <div class="meta">
+    <div class="mitem">Next Issue: <strong id="nextIssue">—</strong></div>
+    <div class="mitem">Periods: <strong id="periodCount">0</strong></div>
+    <div class="mitem">Last Fetch: <span id="lastFetch">—</span></div>
+  </div>
+
+  <div id="leaderboard" style="display:none;margin-top:10px;"></div>
+  <div class="container" id="listContainer"></div>
+
+<script>
+(() => {
+  const API_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json";
+  const CHECK_INTERVAL = 1000; // हर 1 सेकंड में चेक
+  const colorMap = {0:"red",1:"green",2:"red",3:"green",4:"red",5:"green",6:"red",7:"green",8:"red",9:"violet"};
+  const sizeOf = n => (n>=5?"Big":"Small");
+  const randNum = () => Math.floor(Math.random()*10);
+
+  // ---------- NAMES ----------
+  // First 50 are kept exactly as you provided
+  const NAMES = [
+"Pawan soni","Kalyugi","Umesh","Pardeep","Manish","Kajal","Ritik","Kaku","Pokri","Kapil",
+"Praveen","Halve","Aapa to nu","Billu Sanda","Yasu","Neeraj","Bhadder","Titu","Kala","Krishan",
+"Uddham","Tulla","Tota","Beeru","Chutiya","Loss hoga","Mat Kar Lala","Rokde Mitr","Phanter","Chameli",
+"Munni Bai","Dhande Wali","Jony Sins","Miya Khalifa","l@nd Lele","Sani Lion","Kala L@nd","Sorry Bro","Lavel se","Sure Shot",
+"Yo Yo Hony Singh","Ajja Baby","Chala Ja bsdk","Papa Ji","Kirmada","Mhu Me Lele","Gandmra","Black Dog","Soni Ji","Love You",
+  // now 150 more funny / desi-style names (safe, playful)
+"Faltu King","Bindaas Bhai","Pagal Patty","Masti Murgi","Naughty Nandu","Desi Don","Chai Lover","Gol Gappa","Samosa Sifu","Chill Chotu",
+"Jhakaas Jitu","Dhinchak Deep","Drama Queen","Feku Firoz","Garam Gosht","Hawa Hawai","Ishqbaaz","Jalwa Jigar","Khurafati Kumar","Lodu Lal",
+"Momo Monster","Nimboo Niraj","Oye Omi","Pappi Pankaj","Qawwali Queen","Raita Raja","Sarsabz Sid","Tadka Tom","Ullu Banna","Vicky Viper",
+"Wajan Wale","Xpress Xavi","Young Yogi","Zinda Dil","Aashiq Andy","Babli Babu","Chipkali Chintu","Dholu Dulha","Ekka Rummy","Feku Raja",
+"Garmi Ganesh","Hero Hira","Imaan Iqbal","Jhakaas Jolly","Khatarnak Karan","Lollipop Lalu","Masti Mohan","Nazar Nitin","Oont Omi","Peehu Pappu",
+"Quick Qasim","Rocker Raju","Shor Sharabi","Tension Titu","Ultan Paltan","Vajra Vinod","Witty Willy","Xtreme Xander","Yaar Yadav","Zinda Zubair",
+"Amazing Amit","Belly Bala","Choco Chotu","Dumdar Dolly","Ek Number","Funty Funda","Gully Guru","Hugger Hari","Idea Iqbal","Joker Jagan",
+"Kajal Kaka","Laughter Lal","Motu Mintu","Nazar Naresh","Oye Oye Omkar","Paltan Pingu","Quick Qadir","Roly Polly","Sunny Suraaj","Tuk-Tuk Tinku",
+"Ustaad Umar","Vino Vicky","Wagle Wagle","Xanadu Xav","Yummy Yash","Zehri Zafar","Andaaz Aman","Babloo Beta","Chacha Chaudhary","Dhoom Deepak",
+"Ekdum Eklavya","Fizzy Falguni","Gadget Guru","Hustle Hitesh","Intel Iqbal","Jalwa Jignesh","Kaboom Karan","Loopy Laxmi","Masti Mala","Nimboo Neeraj",
+"Omi Oye","Pappi Pappu","Quick Quirky","Raja Rumble","Sound Suraj","Tota Tinku","Uncle Uday","Vibe Vinay","Whisky Wale","Xtra Xtra",
+"Yoddha Yash","Zeal Zubin","Alpha Ajay","Bravo Babloo","Clever Chetan","Dashing Deep","Energetic Esha","Funky Farhan","Giggly Golu","Happy Himmat",
+"Icecream Ilyas","Jolly Jatin","Kool Karan","Lucky Lalu","Mazza Mohit","Naughty Naman","Optimist Om","Pahalwan Punit","Quiet Qamar","Rascal Rishi",
+"Super Sagar","Turbo Tanu","Uddam Umesh","Vicky Vagabond","Wacky Waman","Xpert Xavier","Yaaron Yashu","Zippy Zahir","Aqua Arjun","Babli Bijay",
+"Chill Champ","Dazzle Danish","Echo Eklavya","Flare Feroz","Glow Gagan","Hustler Harnam","Ignite Ishan","Jive Jatin","Kite Kunal","Lively Lalit",
+"Maverick Manoj","Nimble Nilesh","Orbit Ojas","Pepper Pranav","Quirk Qais","Rumble Ramesh","Spicy Sanjay","Turbo Teja","Urban Uday","Vivid Vikram",
+"Wise Wasim","Xeno Xubair","Yummy Yuvraj","Zesty Zafar","Action Ajit","Blaze Bhanu","Cobra Chetan","Dashy Danish","Electric Ebin","Feisty Faraz",
+"Groovy Gaurav","Heat Hiren","Icing Iqbal","Jazzy Javed","Keen Kiran","Loco Lokesh","Mighty Mithun","Nifty Nadeem","Omega Omkar","Prankish Punit"
+  ];
+
+  // ---------- state ----------
+  let slots=[], lastIssue=null, visibleMode='size', periodCount=0;
+  const listContainer=document.getElementById('listContainer');
+  const nextIssueEl=document.getElementById('nextIssue');
+  const periodCountEl=document.getElementById('periodCount');
+  const lastFetchEl=document.getElementById('lastFetch');
+  const leaderboard=document.getElementById('leaderboard');
+
+  // create slots (200)
+  for(let i=0;i<200;i++){
+    const p=randNum();
+    const name = NAMES[i % NAMES.length] || ("Player"+(i+1));
+    const slot = {
+      id:i+1,
+      name,
+      predictedNumber:p,
+      predictedColor:colorMap[p],
+      predictedSize:sizeOf(p),
+      winsColor:0,winsSize:0,lossesColor:0,lossesSize:0,
+      history:[], pinned:false, el:null
+    };
+    slots.push(slot);
+  }
+
+  // create UI cards
+  slots.forEach(s=>{
+    const div=document.createElement('div');
+    div.className='card';
+    div.innerHTML=`
+      <div class="avatar" style="background:linear-gradient(180deg,hsl(${(s.id*37)%360} 70% 95%),hsl(${(s.id*37)%360} 70% 88%))">${s.name[0] ? s.name[0].toUpperCase() : 'P'}</div>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><b style="font-size:14px">${s.name}</b><div id="hit-${s.id}" style="font-size:12px;color:gray">Hit:0%</div></div>
+          <div id="plan-${s.id}" class="badge">${s.predictedSize}</div>
+        </div>
+        <div class="trend" id="trend-${s.id}"></div>
+      </div>`;
+    div.ondblclick=()=>{ s.pinned=!s.pinned; div.classList.toggle('pinned',s.pinned); sortSlots(); };
+    s.el = div;
+    listContainer.appendChild(div);
+  });
+
+  function renderSlot(s){
+    const hit=document.getElementById(`hit-${s.id}`);
+    const plan=document.getElementById(`plan-${s.id}`);
+    const trend=document.getElementById(`trend-${s.id}`);
+    const wins=(visibleMode==='size'?s.winsSize:s.winsColor);
+    const losses=(visibleMode==='size'?s.lossesSize:s.lossesColor);
+    const rate=(wins+losses)?Math.round(wins/(wins+losses)*100):0;
+    hit.textContent=`Hit:${rate}%`;
+    plan.textContent=(visibleMode==='size'?s.predictedSize:s.predictedColor);
+    trend.innerHTML='';
+    s.history.slice(0,10).forEach(h=>{
+      const ok=(visibleMode==='size'?h.winSize:h.winColor);
+      const d=document.createElement('div');
+      d.className='dot '+(ok?'win':'lose');
+      d.textContent=ok?'🎯':'👁️';
+      trend.appendChild(d);
+    });
+  }
+
+  function applyActual(act){
+    const num = parseInt(act.number,10);
+    if (isNaN(num)) return;
+    const color = colorMap[num], size = sizeOf(num);
+    slots.forEach(s=>{
+      const pred = s.predictedNumber;
+      const winC = colorMap[pred] === color;
+      const winS = sizeOf(pred) === size;
+      if(winC) s.winsColor++; else s.lossesColor++;
+      if(winS) s.winsSize++; else s.lossesSize++;
+      s.history.unshift({winColor:winC, winSize:winS});
+      if(s.history.length > 10) s.history.length = 10;
+      const p = randNum(); s.predictedNumber = p; s.predictedColor = colorMap[p]; s.predictedSize = sizeOf(p);
+      renderSlot(s);
+    });
+    sortSlots();
+  }
+
+  function sortSlots(){
+    const sorted = [...slots].sort((a,b)=>{
+      if(a.pinned && !b.pinned) return -1;
+      if(b.pinned && !a.pinned) return 1;
+      const aw = (visibleMode === 'size') ? a.winsSize : a.winsColor;
+      const bw = (visibleMode === 'size') ? b.winsSize : b.winsColor;
+      return bw - aw;
+    });
+    sorted.forEach(s => listContainer.appendChild(s.el));
+    const top = sorted[0];
+    if(top){
+      leaderboard.style.display = 'block';
+      leaderboard.textContent = `⭐ Top: ${top.name} (${visibleMode==='size'?top.winsSize:top.winsColor} Wins)`;
+    } else {
+      leaderboard.style.display = 'none';
+    }
+  }
+
+  async function fetchLoop(){
+    try{
+      const res = await fetch(API_URL, {cache:'no-store'});
+      const js = await res.json();
+      lastFetchEl.textContent = new Date().toLocaleTimeString();
+      const lst = js?.data?.list;
+      if(!lst) return setTimeout(fetchLoop, CHECK_INTERVAL);
+      const latest = lst[0];
+      const issue = latest.issueNumber;
+
+      // always update next issue display
+      const next = (parseInt(issue,10) + 1).toString();
+      nextIssueEl.textContent = next;
+
+      // when new issue arrived
+      if(issue !== lastIssue){
+        lastIssue = issue;
+        periodCount++; periodCountEl.textContent = periodCount;
+        applyActual(latest);
+      }
+    }catch(e){
+      console.error("fetch err", e);
+    }
+    setTimeout(fetchLoop, CHECK_INTERVAL);
+  }
+
+  document.getElementById('tabSize').onclick = ()=>{ visibleMode='size'; toggleTabs(); };
+  document.getElementById('tabColor').onclick = ()=>{ visibleMode='color'; toggleTabs(); };
+  function toggleTabs(){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.getElementById(visibleMode==='size'?'tabSize':'tabColor').classList.add('active');
+    slots.forEach(renderSlot); sortSlots();
+  }
+
+  // initial render & start loop
+  slots.forEach(renderSlot);
+  sortSlots();
+  fetchLoop();
+
+  // expose for debug (optional)
+  window._slots = slots;
+})();
+</script>
+</body>
+</html>
