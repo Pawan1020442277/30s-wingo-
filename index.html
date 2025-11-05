@@ -44,7 +44,7 @@
   </div>
 
   <div class="meta">
-    <div class="mitem">Next Period: <strong id="period">—</strong></div>
+    <div class="mitem">Next Period: <strong id="nextIssue">—</strong></div>
     <div class="mitem">Periods: <strong id="periodCount">0</strong></div>
     <div class="mitem">Last Fetch: <span id="lastFetch">—</span></div>
   </div>
@@ -53,41 +53,7 @@
   <div class="container" id="listContainer"></div>
 
 <script>
-let next = ""; // ← yahan final period save hoga
 
-(function(){
-  const PREFIX = "100005";   // static prefix
-  const START_H = 5, START_M = 30;
-  const PERIOD_SECONDS = 30;
-  const el = document.getElementById("period");
-  let lastPeriod = "";
-
-  function computeNextPeriod() {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), START_H, START_M, 0, 0);
-    let elapsedSec = Math.floor((now - start) / 1000);
-    if (elapsedSec < 0) elapsedSec = 0;
-
-    const completedPeriods = Math.floor(elapsedSec / PERIOD_SECONDS);
-    const nextIndex = completedPeriods + 1;
-
-    // Format: prefix + 4-digit number
-    const periodNumber = PREFIX + String(nextIndex).padStart(4, '0');
-    return periodNumber;
-  }
-
-  function update() {
-    next = computeNextPeriod(); // ← variable me save kar do
-    if (next !== lastPeriod) {
-      lastPeriod = next;
-      el.textContent = next;
-    }
-  }
-
-  // first run and repeat every half second
-  update();
-  setInterval(update, 500);
-})();
 (() => {
   const API_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json";
   const CHECK_INTERVAL = 1000; // हर 1 सेकंड में चेक
